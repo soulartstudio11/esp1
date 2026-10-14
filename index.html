@@ -1,485 +1,445 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LightGuard | ESP32 LDR Monitor</title>
-  <meta name="theme-color" content="#08111f">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LightGuard | Smart Light Security</title>
 
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #08111f;
-      --panel: #111e30;
-      --panel2: #17263b;
-      --border: #263a53;
-      --text: #edf5ff;
-      --muted: #91a5bd;
-      --green: #4ade80;
-      --red: #fb7185;
-      --blue: #60a5fa;
-      --yellow: #facc15;
-    }
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
-    * { box-sizing: border-box; }
+<style>
+:root {
+  --bg: #08111f;
+  --panel: #111d30;
+  --panel2: #172740;
+  --text: #eef5ff;
+  --muted: #91a4bf;
+  --green: #4ce0a0;
+  --red: #ff6376;
+  --yellow: #ffce67;
+  --border: #263650;
+}
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(ellipse at top left, #173153 0, transparent 45%),
-        var(--bg);
-      color: var(--text);
-      font-family: Inter, system-ui, Arial, sans-serif;
-    }
+* { box-sizing: border-box; }
 
-    button, input { font: inherit; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse at top right, #183655 0%, transparent 40%),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, Arial, sans-serif;
+  min-height: 100vh;
+}
 
-    .container {
-      max-width: 1100px;
-      margin: auto;
-      padding: 26px 18px 50px;
-    }
+button, input, select { font: inherit; }
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 18px;
-      margin-bottom: 28px;
-    }
+button { cursor: pointer; }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-    }
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 20px 5%;
+  border-bottom: 1px solid var(--border);
+  background: rgba(8,17,31,.88);
+  flex-wrap: wrap;
+}
 
-    .logo {
-      width: 48px;
-      height: 48px;
-      display: grid;
-      place-items: center;
-      border-radius: 15px;
-      background: #1d3553;
-      font-size: 26px;
-    }
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
 
-    h1 { margin: 0; font-size: 25px; }
-    .subtitle { color: var(--muted); font-size: 12px; margin-top: 5px; }
+.logo {
+  width: 45px;
+  height: 45px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 25px;
+  background: linear-gradient(135deg, #35d99a, #2388d8);
+  box-shadow: 0 0 24px #35d99a33;
+}
 
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      border-radius: 30px;
-      padding: 10px 14px;
-      font-size: 12px;
-    }
+.brand h1 { margin: 0; font-size: 21px; }
+.brand p { margin: 4px 0 0; color: var(--muted); font-size: 11px; letter-spacing: 2px; }
 
-    .dot {
-      width: 9px;
-      height: 9px;
-      background: var(--yellow);
-      border-radius: 50%;
-      display: inline-block;
-    }
+.connection {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border-radius: 30px;
+  font-size: 12px;
+  color: var(--muted);
+}
 
-    .dot.online { background: var(--green); }
-    .dot.offline { background: var(--red); }
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--yellow);
+}
 
-    .hero {
-      padding: 26px;
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      background: linear-gradient(120deg, #142b46, #112032);
-      margin-bottom: 18px;
-    }
+.dot.online { background: var(--green); box-shadow: 0 0 12px var(--green); }
+.dot.offline { background: var(--red); }
 
-    .eyebrow {
-      color: var(--blue);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
+main { max-width: 1250px; margin: auto; padding: 35px 22px 60px; }
 
-    .hero h2 {
-      font-size: clamp(25px, 5vw, 38px);
-      margin: 12px 0 9px;
-    }
+.eyebrow {
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
 
-    .hero p {
-      max-width: 650px;
-      color: var(--muted);
-      line-height: 1.7;
-      margin-bottom: 0;
-    }
+h2 { font-size: clamp(26px, 4vw, 38px); margin: 9px 0; letter-spacing: -1px; }
+.subtitle { color: var(--muted); line-height: 1.6; margin-bottom: 28px; }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 17px;
-    }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 17px;
+}
 
-    .card {
-      min-width: 0;
-      padding: 22px;
-      border: 1px solid var(--border);
-      border-radius: 19px;
-      background: rgba(17, 30, 48, .94);
-    }
+.card {
+  background: linear-gradient(145deg, #14223a, #0f1a2b);
+  border: 1px solid var(--border);
+  border-radius: 19px;
+  padding: 23px;
+  min-width: 0;
+  box-shadow: 0 15px 35px #00000018;
+}
 
-    .card-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      color: var(--muted);
-      font-size: 13px;
-    }
+.card-label {
+  color: var(--muted);
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
 
-    .icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      background: var(--panel2);
-      font-size: 19px;
-    }
+.icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--panel2);
+  font-size: 19px;
+}
 
-    .reading {
-      font-size: clamp(35px, 7vw, 53px);
-      font-weight: 800;
-      letter-spacing: -2px;
-      margin: 25px 0 8px;
-    }
+.big-value {
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 800;
+  letter-spacing: -2px;
+  margin: 20px 0 8px;
+  overflow-wrap: anywhere;
+}
 
-    .reading small {
-      font-size: 15px;
-      color: var(--muted);
-      letter-spacing: 0;
-    }
+.unit { font-size: 14px; color: var(--muted); letter-spacing: 0; }
 
-    .description {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.6;
-    }
+.small-text { font-size: 12px; color: var(--muted); line-height: 1.6; }
 
-    .state-pill {
-      display: inline-block;
-      border-radius: 9px;
-      padding: 7px 10px;
-      background: #243047;
-      font-size: 11px;
-      font-weight: 800;
-    }
+.green { color: var(--green); }
+.red { color: var(--red); }
+.yellow { color: var(--yellow); }
 
-    .state-pill.good {
-      background: #153b2b;
-      color: var(--green);
-    }
+.status-card {
+  grid-column: span 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
 
-    .state-pill.bad {
-      background: #46212b;
-      color: var(--red);
-    }
+.status-card h3 { margin: 0 0 8px; font-size: 21px; }
 
-    .state-pill.wait {
-      background: #45391a;
-      color: var(--yellow);
-    }
+.status-icon {
+  width: 90px;
+  height: 90px;
+  border-radius: 25px;
+  display: grid;
+  place-items: center;
+  font-size: 43px;
+  background: #172740;
+  flex-shrink: 0;
+}
 
-    .wide { grid-column: 1 / -1; }
+.status-icon.dark {
+  background: #47212e;
+  box-shadow: 0 0 35px #ff637622;
+}
 
-    .section-heading {
-      margin: 0 0 5px;
-      font-size: 16px;
-    }
+.status-icon.bright {
+  background: #47391e;
+  box-shadow: 0 0 35px #ffce6722;
+}
 
-    .section-description {
-      margin: 0 0 18px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.6;
-    }
+.status-icon.unknown { background: #172740; }
 
-    .field { margin-bottom: 14px; }
+.section-heading {
+  margin: 35px 0 15px;
+  font-size: 17px;
+}
 
-    label {
-      display: block;
-      margin-bottom: 7px;
-      color: var(--muted);
-      font-size: 12px;
-    }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  margin-top: 18px;
+}
 
-    input {
-      width: 100%;
-      padding: 12px;
-      color: var(--text);
-      background: #091524;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      outline: none;
-    }
+.panel h3 { margin-top: 0; }
 
-    input:focus { border-color: var(--blue); }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 15px;
+}
 
-    .button-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 9px;
-      margin-top: 15px;
-    }
+.field { display: grid; gap: 8px; }
 
-    button {
-      padding: 11px 15px;
-      color: var(--text);
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      cursor: pointer;
-    }
+.field label { font-size: 12px; color: var(--muted); }
 
-    button.primary {
-      background: #2563eb;
-      border-color: #2563eb;
-    }
+.field input, .field select {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  background: #091525;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+}
 
-    button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
+.field input:focus, .field select:focus { border-color: var(--green); }
 
-    .log {
-      display: grid;
-      gap: 9px;
-      max-height: 280px;
-      overflow-y: auto;
-    }
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
 
-    .log-item {
-      padding: 12px;
-      border: 1px solid var(--border);
-      background: #0c1929;
-      border-radius: 11px;
-      overflow-wrap: anywhere;
-    }
+.btn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 16px;
+  background: var(--panel2);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 12px;
+}
 
-    .log-item strong { font-size: 12px; }
-    .log-item p {
-      margin: 5px 0;
-      color: var(--muted);
-      font-size: 12px;
-    }
+.btn.primary {
+  color: #061a13;
+  border-color: var(--green);
+  background: var(--green);
+}
 
-    .log-item time {
-      color: #7287a0;
-      font-size: 10px;
-    }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
 
-    .notice {
-      padding: 13px;
-      margin-top: 15px;
-      border-radius: 10px;
-      background: #182a40;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.7;
-      overflow-wrap: anywhere;
-    }
+.notice {
+  margin-top: 15px;
+  padding: 13px;
+  border-radius: 10px;
+  background: #18283e;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
 
-    footer {
-      padding-top: 25px;
-      color: var(--muted);
-      font-size: 11px;
-      text-align: center;
-      line-height: 1.8;
-    }
+.events { display: grid; gap: 10px; }
 
-    @media (max-width: 650px) {
-      .container { padding: 18px 12px 35px; }
-      header { align-items: flex-start; }
-      h1 { font-size: 21px; }
-      .logo { width: 40px; height: 40px; }
-      .status { font-size: 10px; padding: 8px; }
-      .hero { padding: 20px; }
-      .card { padding: 17px; }
-      .grid { gap: 11px; }
-    }
+.event {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
 
-    @media (max-width: 400px) {
-      .grid { grid-template-columns: 1fr; }
-      .wide { grid-column: auto; }
-      header { flex-wrap: wrap; }
-    }
-  </style>
+.event:last-child { border-bottom: 0; }
+
+.event-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--panel2);
+}
+
+.event strong { display: block; font-size: 12px; margin-bottom: 5px; }
+.event p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.event time { display: block; color: var(--muted); font-size: 10px; margin-top: 5px; }
+
+footer {
+  padding: 22px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  border-top: 1px solid var(--border);
+}
+
+@media(max-width: 800px) {
+  main { padding: 25px 14px 40px; }
+  .grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .status-card { grid-column: span 2; }
+  .card { padding: 17px; }
+}
+
+@media(max-width: 480px) {
+  .grid, .form-grid { grid-template-columns: 1fr; }
+  .status-card { grid-column: span 1; }
+  .status-icon { width: 65px; height: 65px; font-size: 32px; }
+  header { padding: 15px; }
+  .connection { padding: 8px 10px; }
+}
+</style>
 </head>
 
 <body>
-<div class="container">
+<header>
+  <div class="brand">
+    <div class="logo">🛡️</div>
+    <div>
+      <h1>LightGuard</h1>
+      <p>SMART LIGHT MONITORING</p>
+    </div>
+  </div>
 
-  <header>
-    <div class="brand">
-      <div class="logo">💡</div>
+  <div class="connection">
+    <span class="dot" id="connectionDot"></span>
+    <span id="connectionText">Not connected</span>
+  </div>
+</header>
+
+<main>
+  <div class="eyebrow">ESP32 · LDR · MQTT CLOUD</div>
+  <h2>Your light, monitored intelligently.</h2>
+  <p class="subtitle">
+    Real-time light-state monitoring powered by your ESP32 and EMQX Cloud.
+  </p>
+
+  <div class="grid">
+    <section class="card status-card">
       <div>
-        <h1>LightGuard</h1>
-        <div class="subtitle">ESP32 CLOUD LIGHT MONITOR</div>
+        <div class="card-label">CURRENT LIGHT CONDITION <span>● LIVE</span></div>
+        <h3 id="lightTitle">Waiting for sensor</h3>
+        <div class="big-value" id="lightValue">---</div>
+        <p class="small-text" id="lightDescription">
+          Connect to MQTT to receive ESP32 readings.
+        </p>
       </div>
-    </div>
+      <div class="status-icon unknown" id="lightIcon">💡</div>
+    </section>
 
-    <div class="status">
-      <span class="dot" id="connectionDot"></span>
-      <span id="connectionText">Not connected</span>
-    </div>
-  </header>
+    <section class="card">
+      <div class="card-label">LAST MESSAGE <span class="icon">↻</span></div>
+      <div class="big-value" style="font-size:25px" id="lastMessage">---</div>
+      <p class="small-text">Latest payload received from your device.</p>
+    </section>
 
-  <section class="hero">
-    <div class="eyebrow">Internet of Things · Live monitoring</div>
-    <h2>Your light. Your dashboard.</h2>
-    <p>
-      Monitor your digital LDR sensor from anywhere using your ESP32
-      and a cloud MQTT broker. Readings update when the sensor publishes
-      a new message.
+    <section class="card">
+      <div class="card-label">MESSAGES RECEIVED <span class="icon">⌁</span></div>
+      <div class="big-value" id="messageCount">0</div>
+      <p class="small-text">Since this dashboard was opened.</p>
+    </section>
+
+    <section class="card">
+      <div class="card-label">LAST UPDATE <span class="icon">◷</span></div>
+      <div class="big-value" style="font-size:25px" id="lastUpdate">Never</div>
+      <p class="small-text">Browser-local time of the last message.</p>
+    </section>
+  </div>
+
+  <h3 class="section-heading">MQTT connection settings</h3>
+
+  <section class="panel">
+    <h3>EMQX Cloud</h3>
+    <p class="small-text">
+      Use a dedicated MQTT account with permission to subscribe only to your
+      LightGuard topic. Do not use an administrator account on a public website.
     </p>
-  </section>
 
-  <section class="grid">
-
-    <article class="card">
-      <div class="card-title">
-        Digital LDR output
-        <span class="icon">☀️</span>
-      </div>
-
-      <div class="reading" id="ldrValue">--</div>
-      <div id="ldrPill" class="state-pill wait">Waiting for data</div>
-
-      <p class="description" id="ldrDescription">
-        Waiting for your ESP32 to publish a sensor reading.
-      </p>
-    </article>
-
-    <article class="card">
-      <div class="card-title">
-        Device status
-        <span class="icon">📡</span>
-      </div>
-
-      <div class="reading" id="deviceValue" style="font-size:34px">
-        Offline
-      </div>
-
-      <div id="devicePill" class="state-pill wait">No recent messages</div>
-
-      <p class="description">
-        A recent MQTT message indicates activity. It does not prove the
-        ESP32 is currently online unless your firmware sends a heartbeat.
-      </p>
-    </article>
-
-    <article class="card">
-      <div class="card-title">
-        Last sensor update
-        <span class="icon">🕒</span>
-      </div>
-
-      <div class="reading" id="lastUpdate" style="font-size:27px">
-        Never
-      </div>
-
-      <p class="description" id="lastUpdateDetail">
-        No messages received yet.
-      </p>
-    </article>
-
-    <article class="card">
-      <div class="card-title">
-        Messages received
-        <span class="icon">📨</span>
-      </div>
-
-      <div class="reading" id="messageCount">0</div>
-
-      <p class="description">
-        Total sensor messages received during this page session.
-      </p>
-    </article>
-
-    <article class="card wide">
-      <h3 class="section-heading">Cloud MQTT connection</h3>
-      <p class="section-description">
-        Enter your broker's secure WebSocket details and a dedicated
-        read-only MQTT account. These settings are not automatically saved.
-      </p>
-
+    <div class="form-grid">
       <div class="field">
         <label for="broker">Secure WebSocket URL</label>
         <input id="broker" type="url"
-          placeholder="wss://your-broker-host:port/mqtt"
-          autocomplete="url">
+          value="wss://f8b09f99.ala.eu-central-1.emqxsl.com:8084/mqtt">
       </div>
 
       <div class="field">
-        <label for="topic">Sensor topic</label>
-        <input id="topic" type="text"
-          placeholder="lightguard/ldr"
-          value="lightguard/ldr">
+        <label for="topic">ESP32 MQTT topic</label>
+        <input id="topic" type="text" value="lightguard/ldr">
       </div>
 
       <div class="field">
-        <label for="username">Read-only MQTT username</label>
-        <input id="username" type="text"
-          autocomplete="username"
-          placeholder="Enter read-only username">
+        <label for="username">MQTT username</label>
+        <input id="username" type="text" autocomplete="username"
+          placeholder="Enter your MQTT username">
       </div>
 
       <div class="field">
-        <label for="password">Read-only MQTT password</label>
-        <input id="password" type="password"
-          autocomplete="current-password"
-          placeholder="Enter read-only password">
+        <label for="password">MQTT password</label>
+        <input id="password" type="password" autocomplete="current-password"
+          placeholder="Enter your MQTT password">
       </div>
+    </div>
 
-      <div class="button-row">
-        <button class="primary" id="connectButton">Connect dashboard</button>
-        <button id="disconnectButton" disabled>Disconnect</button>
-        <button id="clearButton">Clear activity</button>
-      </div>
+    <div class="actions">
+      <button class="btn primary" id="connectBtn">Connect to ESP32</button>
+      <button class="btn" id="disconnectBtn" disabled>Disconnect</button>
+      <button class="btn" id="clearBtn">Clear event history</button>
+    </div>
 
-      <div class="notice" id="connectionNotice" role="status">
-        Not connected. Add your real broker details before connecting.
-      </div>
-    </article>
-
-    <article class="card wide">
-      <h3 class="section-heading">Live activity</h3>
-      <p class="section-description">
-        Incoming messages from your subscribed MQTT topic.
-      </p>
-      <div class="log" id="activityLog">
-        <div class="log-item">
-          <strong>Dashboard started</strong>
-          <p>Waiting for an MQTT connection.</p>
-        </div>
-      </div>
-    </article>
-
+    <div class="notice" id="connectionNotice" role="status">
+      Enter your MQTT credentials and press Connect. The password is not
+      written into this HTML file or saved by this page.
+    </div>
   </section>
 
-  <footer>
-    LightGuard · ESP32 + Digital LDR · MQTT over secure WebSockets<br>
-    LDR HIGH/LOW depends on your sensor module's comparator configuration.
-  </footer>
-</div>
+  <h3 class="section-heading">Sensor event history</h3>
 
-<!-- MQTT.js browser library -->
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <section class="panel">
+    <div class="card-label">
+      <span>RECENT MQTT EVENTS</span>
+      <span id="eventCount">0 events</span>
+    </div>
+    <div class="events" id="events">
+      <div class="event">
+        <div class="event-icon">⌁</div>
+        <div>
+          <strong>Dashboard started</strong>
+          <p>Waiting for a sensor message.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="notice">
+    <strong>Important:</strong> This dashboard displays the messages it receives.
+    It cannot physically control your light unless you implement a separate
+    command topic and suitable ESP32 firmware. A DARK or BRIGHT message alone
+    is not proof of intrusion or a security breach.
+  </div>
+</main>
+
+<footer>
+  LightGuard · ESP32 Light Monitoring · MQTT over TLS
+</footer>
 
 <script>
 (() => {
@@ -488,105 +448,122 @@
   const $ = id => document.getElementById(id);
 
   let client = null;
-  let messages = 0;
-  let lastMessageAt = 0;
-  let deviceTimer = null;
+  let messageCount = 0;
+  let eventCount = 0;
+  let connected = false;
 
-  function log(title, detail) {
-    const item = document.createElement("div");
-    item.className = "log-item";
+  function setConnection(isConnected, message) {
+    connected = isConnected;
+
+    $("connectionDot").className =
+      "dot " + (isConnected ? "online" : "offline");
+
+    $("connectionText").textContent =
+      isConnected ? "Connected" : "Not connected";
+
+    $("connectBtn").disabled = isConnected;
+    $("disconnectBtn").disabled = !isConnected;
+
+    $("connectionNotice").textContent = message;
+  }
+
+  function addEvent(title, detail, icon = "⌁") {
+    const container = $("events");
+
+    const empty = container.querySelector(".empty");
+    if (empty) empty.remove();
+
+    const event = document.createElement("div");
+    event.className = "event";
+
+    const eventIcon = document.createElement("div");
+    eventIcon.className = "event-icon";
+    eventIcon.textContent = icon;
+
+    const content = document.createElement("div");
 
     const heading = document.createElement("strong");
     heading.textContent = title;
 
-    const paragraph = document.createElement("p");
-    paragraph.textContent = detail;
+    const description = document.createElement("p");
+    description.textContent = detail;
 
     const time = document.createElement("time");
-    time.textContent = new Date().toLocaleString();
+    time.textContent = new Date().toLocaleTimeString();
 
-    item.append(heading, paragraph, time);
-    $("activityLog").prepend(item);
+    content.append(heading, description, time);
+    event.append(eventIcon, content);
+    container.prepend(event);
 
-    while ($("activityLog").children.length > 30) {
-      $("activityLog").lastElementChild.remove();
+    while (container.children.length > 30) {
+      container.lastElementChild.remove();
+    }
+
+    eventCount++;
+    $("eventCount").textContent = eventCount + " events";
+  }
+
+  function updateLight(payload) {
+    const value = String(payload).trim().toUpperCase();
+
+    $("lastMessage").textContent = value || "(empty)";
+    $("lastUpdate").textContent = new Date().toLocaleTimeString();
+
+    messageCount++;
+    $("messageCount").textContent = messageCount;
+
+    const icon = $("lightIcon");
+
+    if (value === "DARK") {
+      $("lightTitle").textContent = "Dark environment detected";
+      $("lightValue").textContent = "DARK";
+      $("lightValue").className = "big-value red";
+      $("lightDescription").textContent =
+        "Your LDR sensor reports low light.";
+      icon.textContent = "🌙";
+      icon.className = "status-icon dark";
+      addEvent("Dark condition detected", "ESP32 payload: DARK", "🌙");
+    } else if (value === "BRIGHT") {
+      $("lightTitle").textContent = "Bright environment detected";
+      $("lightValue").textContent = "BRIGHT";
+      $("lightValue").className = "big-value yellow";
+      $("lightDescription").textContent =
+        "Your LDR sensor reports sufficient light.";
+      icon.textContent = "☀️";
+      icon.className = "status-icon bright";
+      addEvent("Bright condition detected", "ESP32 payload: BRIGHT", "☀️");
+    } else {
+      $("lightTitle").textContent = "Sensor message received";
+      $("lightValue").textContent = value.slice(0, 24) || "EMPTY";
+      $("lightValue").className = "big-value";
+      $("lightDescription").textContent =
+        "Received a payload other than DARK or BRIGHT.";
+      icon.textContent = "📡";
+      icon.className = "status-icon unknown";
+      addEvent("MQTT message received", "Payload: " + value.slice(0, 150));
     }
   }
 
-  function connectionStatus(connected, message) {
-    $("connectionText").textContent =
-      connected ? "Connected" : "Not connected";
-
-    $("connectionDot").className =
-      "dot " + (connected ? "online" : "offline");
-
-    $("connectionNotice").textContent = message;
-
-    $("connectButton").disabled = connected;
-    $("disconnectButton").disabled = !client;
-  }
-
-  function showLdr(value) {
-    const normalized = String(value).trim().toUpperCase();
-
-    if (normalized !== "HIGH" && normalized !== "LOW") {
-      log("Unrecognized message", "Expected HIGH or LOW; received: " + normalized);
-      return;
-    }
-
-    $("ldrValue").textContent = normalized;
-
-    const pill = $("ldrPill");
-    pill.className = "state-pill " +
-      (normalized === "LOW" ? "good" : "bad");
-
-    pill.textContent = normalized === "LOW"
-      ? "Digital output LOW"
-      : "Digital output HIGH";
-
-    $("ldrDescription").textContent =
-      "GPIO 18 digital output: " + normalized +
-      ". Interpret this using your LDR module's threshold and output polarity.";
-
-    lastMessageAt = Date.now();
-    $("lastUpdate").textContent =
-      new Date(lastMessageAt).toLocaleTimeString();
-
-    $("lastUpdateDetail").textContent =
-      "Received from MQTT at " +
-      new Date(lastMessageAt).toLocaleString();
-
-    messages++;
-    $("messageCount").textContent = messages;
-
-    $("deviceValue").textContent = "Active";
-    $("devicePill").className = "state-pill good";
-    $("devicePill").textContent = "Recent message received";
-
-    log("LDR reading: " + normalized,
-        "Topic: " + $("topic").value.trim());
-  }
-
-  function disconnectDashboard() {
+  function disconnect(showEvent = true) {
     if (client) {
       const oldClient = client;
       client = null;
+
+      oldClient.removeAllListeners();
       oldClient.end(true);
     }
 
-    connectionStatus(false, "Dashboard disconnected.");
-    $("deviceValue").textContent = "Offline";
-    $("devicePill").className = "state-pill wait";
-    $("devicePill").textContent = "No active connection";
+    setConnection(false, "Disconnected from the MQTT broker.");
 
-    if (deviceTimer) clearInterval(deviceTimer);
-    deviceTimer = null;
+    if (showEvent) {
+      addEvent("Disconnected", "MQTT connection closed.", "↗");
+    }
   }
 
-  $("connectButton").addEventListener("click", () => {
-    if (!window.mqtt) {
-      connectionStatus(false,
-        "MQTT.js could not load. Check your internet connection.");
+  $("connectBtn").addEventListener("click", () => {
+    if (typeof mqtt === "undefined") {
+      setConnection(false,
+        "MQTT library did not load. Check your internet connection and reload.");
       return;
     }
 
@@ -596,20 +573,18 @@
     const password = $("password").value;
 
     if (!broker.startsWith("wss://")) {
-      connectionStatus(false,
-        "Use your broker's secure wss:// WebSocket address.");
+      setConnection(false, "Use a secure wss:// MQTT broker URL.");
       return;
     }
 
     if (!topic || !username || !password) {
-      connectionStatus(false,
-        "Enter a topic and your read-only MQTT credentials.");
+      setConnection(false, "Enter the topic, username and password.");
       return;
     }
 
-    disconnectDashboard();
+    if (client) disconnect(false);
 
-    connectionStatus(false, "Connecting to cloud MQTT broker...");
+    setConnection(false, "Connecting to EMQX Cloud...");
 
     try {
       client = mqtt.connect(broker, {
@@ -619,80 +594,80 @@
           Math.random().toString(16).slice(2, 12),
         clean: true,
         connectTimeout: 10000,
-        reconnectPeriod: 3000,
-        keepalive: 30,
-        resubscribe: true
+        reconnectPeriod: 0,
+        protocolVersion: 4
       });
-
-      client.on("connect", () => {
-        if (!client) return;
-
-        connectionStatus(true, "Connected. Subscribing to " + topic);
-
-        client.subscribe(topic, { qos: 0 }, error => {
-          if (error) {
-            log("Subscription failed", error.message);
-            connectionStatus(true,
-              "MQTT connected, but subscription failed. Check topic permissions.");
-          } else {
-            log("Subscribed", "Listening to topic: " + topic);
-          }
-        });
-
-        if (deviceTimer) clearInterval(deviceTimer);
-
-        deviceTimer = setInterval(() => {
-          if (lastMessageAt && Date.now() - lastMessageAt > 30000) {
-            $("deviceValue").textContent = "Stale";
-            $("devicePill").className = "state-pill wait";
-            $("devicePill").textContent = "No message for 30 seconds";
-          }
-        }, 5000);
-      });
-
-      client.on("message", (receivedTopic, payload) => {
-        if (receivedTopic !== topic) return;
-
-        const value = payload.toString();
-        showLdr(value);
-      });
-
-      client.on("reconnect", () => {
-        connectionStatus(false, "Connection lost. Trying to reconnect...");
-      });
-
-      client.on("offline", () => {
-        connectionStatus(false, "MQTT client is offline.");
-      });
-
-      client.on("error", error => {
-        log("MQTT error", error.message);
-        connectionStatus(false,
-          "Connection error. Verify broker URL, WebSocket port, credentials and ACL.");
-      });
-
-      client.on("close", () => {
-        if (!client) return;
-        connectionStatus(false, "MQTT connection closed.");
-      });
-
     } catch (error) {
-      disconnectDashboard();
-      connectionStatus(false, "Could not start MQTT: " + error.message);
+      setConnection(false, "Could not start MQTT connection: " + error.message);
+      return;
     }
+
+    const thisClient = client;
+
+    thisClient.on("connect", () => {
+      if (client !== thisClient) return;
+
+      setConnection(true, "Connected. Subscribing to " + topic + " ...");
+
+      thisClient.subscribe(topic, { qos: 0 }, error => {
+        if (client !== thisClient) return;
+
+        if (error) {
+          setConnection(true, "Connected, but topic subscription failed.");
+          addEvent("Subscription failed", error.message, "⚠️");
+        } else {
+          $("connectionNotice").textContent =
+            "Connected successfully. Listening to " + topic + ".";
+          addEvent("MQTT connected", "Subscribed to " + topic, "✓");
+        }
+      });
+    });
+
+    thisClient.on("message", (receivedTopic, payload) => {
+      if (client !== thisClient) return;
+      if (receivedTopic !== topic) return;
+
+      updateLight(payload.toString());
+    });
+
+    thisClient.on("error", error => {
+      if (client !== thisClient) return;
+
+      setConnection(false,
+        "MQTT connection error. Check broker URL, credentials, ACL permissions and TLS settings.");
+
+      addEvent("MQTT error", error.message || "Connection error", "⚠️");
+    });
+
+    thisClient.on("close", () => {
+      if (client !== thisClient) return;
+      setConnection(false, "Connection closed. You can try connecting again.");
+    });
+
+    thisClient.on("offline", () => {
+      if (client !== thisClient) return;
+      setConnection(false, "MQTT client is offline.");
+    });
   });
 
-  $("disconnectButton").addEventListener("click", disconnectDashboard);
+  $("disconnectBtn").addEventListener("click", () => disconnect());
 
-  $("clearButton").addEventListener("click", () => {
-    $("activityLog").replaceChildren();
-    log("Activity cleared", "The dashboard activity log was cleared.");
+  $("clearBtn").addEventListener("click", () => {
+    $("events").replaceChildren();
+
+    eventCount = 0;
+    $("eventCount").textContent = "0 events";
+
+    addEvent("History cleared", "New events will appear here.", "↻");
   });
 
   window.addEventListener("beforeunload", () => {
     if (client) client.end(true);
   });
+
+  setConnection(false, "Enter your MQTT credentials to connect.");
 })();
 </script>
 </body>
 </html>
+```
